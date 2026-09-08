@@ -10,8 +10,8 @@
     read-only. The Skyrim game files are not changed.
 
     By default, the script asks whether to retrieve current release data from
-    api.steamcmd.net. It also includes a known release for offline use and
-    accepts custom values.
+    api.steamcmd.net. It also includes the newest release data known when the
+    script was last updated, for offline use, and accepts custom values.
 
 .PARAMETER SteamApps
     Optional path to the Steam library's steamapps folder. The script finds
