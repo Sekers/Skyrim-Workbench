@@ -1,178 +1,181 @@
-# Keep an Older Steam Skyrim Version from Updating
+# Keep an Older Skyrim Special Edition Build from Updating
 
-`Set-SteamSkyrimAcfBuildAndLock.ps1` is for players who stay on an older Skyrim Special Edition version because a Steam update would break their SKSE setup or version-dependent mods.
+Steam wants every game on the newest version. If you run SKSE or version-dependent mods, a Skyrim update breaks them. This script tells Steam your Skyrim is already up to date and then locks that answer in, so the update never arrives. **Run it again after each new Skyrim release to record the new numbers.**
 
-Run it after restoring or downgrading Skyrim. It makes Steam treat the installed game as current and locks Steam's update record for Skyrim. While that record remains locked, Steam cannot queue, download, stage, or install the unwanted update.
+It is for Skyrim Special Edition and Anniversary Edition on Steam for Windows. It does not work with the original or Legendary Edition, Skyrim VR, GOG, or the Microsoft Store version. It runs on Windows PowerShell 5.1 and PowerShell 7 or newer.
 
-This tool is only for the Steam version of Skyrim Special Edition on Windows.
+Your game files are never touched. The script only edits Steam's bookkeeping file for Skyrim.
+
+## Before you start
+
+1. **Get Skyrim onto the version you want first.** This script does not downgrade anything. If Steam has already updated you, follow the [downgrade guide](../../../docs/steam/downgrade-steam-skyrim.md) first, then come back here.
+2. **Exit Steam completely.** Select **Steam > Exit** from the menu, or right-click the tray icon and choose **Exit**. Closing the window is not enough, and the script refuses to run while Steam is open.
+
+## Run the script
+
+Open a terminal in the repository root and run one of these. Either edition works; use the second if you have PowerShell 7 or newer installed.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1"
+```
+
+```powershell
+pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1"
+```
+
+`-ExecutionPolicy Bypass` applies only to that one PowerShell process. It does not change any setting on your computer.
+
+You do not need to edit the script. It finds your Skyrim automatically, even if your Steam library is on a different drive than Steam itself, and reads your exact installed depots from `appmanifest_489830.acf`.
+
+### What it will ask you
+
+A normal run asks one question, then shows you what it changed. The rest of these only appear if something is unusual.
+
+| Question | When it appears | What to answer |
+| --- | --- | --- |
+| `Look up the current public release from api.steamcmd.net? Only Skyrim's app ID 489830 is sent. [Y/n]` | Every run | **Enter** for yes, which is the normal choice. It fetches the build numbers Steam is handing out today. Answer **n** to stay offline. |
+| `Use this embedded release? [Y/n]` | You answered `n` above, or the lookup failed | **Enter** to accept the release saved in the script, but check the date it prints first: that release was the newest one when the script was last updated, and Bethesda may have shipped a patch since. Answer **n** to supply your own numbers instead. If the lookup failed rather than you declining it, this defaults to No. |
+| `Enter custom build and manifest IDs instead? [y/N]` | You declined both of the above | **y** if you already have the numbers, from [Advanced](#advanced-find-and-supply-custom-release-ids) below. **Enter** cancels the run without changing anything. |
+| `Select 1 through N, or press Enter to cancel` | Steam's record file for Skyrim turned up in more than one library folder. Usually an old copy left behind by an interrupted **Move Install Folder**, or by a library folder you copied or restored yourself | Type the number for the Skyrim you actually play. The script lists the full folder path for each one, so match it against where your modded game lives, such as the folder Mod Organizer 2 launches. If you are not sure, press **Enter** to cancel, check the folder in Steam under **Properties > Installed Files**, then run the script again. |
+| `Use the older online release anyway? [y/N]` | The online data looks older than the release saved in the script | **Enter** for no. Say yes only if you know Valve rolled the game back; otherwise the service is probably returning stale data. |
+| `Record the lower build anyway? [y/N]` | The build about to be written is lower than the one already recorded | **Enter** for no. A lower build can make Steam decide an update is needed, so say yes only if you know why it is lower. |
+
+### When it finishes
+
+If it changed anything, it prints where the backup went and a table of the exact lines it changed. Review that, then start Steam again.
+
+Otherwise it just confirms the manifest already matches and makes sure read-only is on.
+
+**Do not use Verify Integrity of Game Files.** See [Important limitations](#important-limitations).
 
 ## What it does
 
-- Stops Steam from queuing, downloading, staging, or installing an unwanted Skyrim update while the update record remains locked.
-- Makes Steam believe the installed game matches the current public release while leaving the older game files untouched.
+- Writes the current public build and manifest ID numbers into Skyrim's Steam app manifest, and clears the update state Steam had already recorded: its saved update result, download and staging counters, and scheduled update time. Steam decides whether a game needs updating from those numbers, not from your actual game files, so it now treats your game installation as already up to date. Your older game files are never replaced.
+- Because Steam believes nothing needs updating, it never queues, downloads, or stages the new build. That saves the bandwidth and the temporary disk space a download would use, not just the final install step.
+- Keeps the app manifest read-only. Steam records an update in that file before applying it, so when the next Skyrim release arrives, Steam cannot write the new state and the update does not go through. This is what protects the installation once the ID numbers above are out of date.
 - Sets Steam's update preference to update only when the game is launched.
-- Clears stale values that can make Steam show an update as pending.
-- Locks Steam's Skyrim update record as read-only when it finishes.
-- Backs up that record only when something actually needs to change.
-- Shows the old and new values so you can review exactly what changed.
+- Backs up the app manifest before applying changes.
+- Shows the exact lines changed.
 
-## What it does not do
+## What it changes in the manifest
 
-- It does not download or install an older Skyrim version.
-- It does not back up the game itself.
-- It does not make mismatched SKSE versions or SKSE plugins compatible.
-- It does not protect the game if you use Steam's **Verify Integrity of Game Files** option.
-- It does not work with the GOG version of Skyrim.
+Everything below is in `steamapps\appmanifest_489830.acf`. Fields marked optional are only touched if Steam put them there.
 
-Complete the downgrade or restore first. Run this script afterward, before starting Steam again.
+| Field | Set to | Why |
+| --- | --- | --- |
+| `buildid` | Current public build ID | The number Steam compares against the public release to decide an update is needed. |
+| `TargetBuildID` | Same build ID | The build Steam is working toward. Optional. |
+| `manifest`, per installed depot | Current public GID for that depot | Steam checks each depot as well, so one stale GID is enough to trigger an update. |
+| `StateFlags` | `4` | Marks the game fully installed, clearing any update required or update queued state. |
+| `AutoUpdateBehavior` | `1` | Only update this game when I launch it, so Steam will not start one on its own. |
+| `UpdateResult` | `0` | Clears a recorded failure from an earlier update attempt. Optional. |
+| `BytesToDownload`, `BytesDownloaded` | `0` | Clears a part-finished download. Optional. |
+| `StagingSize`, `BytesToStage`, `BytesStaged` | `0` | Clears a part-finished staging step. Optional. |
+| `ScheduledAutoUpdate` | `0` | Removes a scheduled update time. Optional. |
 
-## Requirements
+The file is then set read-only.
 
-- PowerShell 5.1 or later
-- The Steam version of Skyrim Special Edition
-- The Steam depot manifests for the Skyrim version you want to use
-- An SKSE version and SKSE plugins compatible with that Skyrim version
+## Backups and repeated runs
 
-## Downgrade or restore Skyrim first
+The backup, `appmanifest_489830.acf.bak`, holds the app manifest exactly as it was immediately before the most recent edit. Each later edit replaces that single backup. It is not a backup of Skyrim itself.
 
-This script cannot put an older version of Skyrim on your computer. Complete that step before using it.
+If the app manifest already holds the right values, the script changes nothing and writes no backup. It still confirms that read-only protection is on.
 
-The [Steam Skyrim downgrade guide](../../../docs/steam/downgrade-steam-skyrim.md) explains how to restore a chosen version from a backup or with Steam's own depot downloads.
+## Important limitations
 
-After the game files are restored, return here to configure and run the lockdown script before starting Steam again.
+- Never use **Verify Integrity of Game Files** while preserving an older build. It is the one thing that inspects your actual game files, notices they are old, and re-downloads the new build over them. The read-only manifest does not stop it.
+- Valve does not document or guarantee this method. Keep a separate copy of your working Skyrim folder. That is the real safety net.
+- The script does not download, install, or select an older Skyrim version.
+- SKSE and its plugins must match the Skyrim version you actually have installed, not the build number written into the app manifest.
+- Start Skyrim through MO2 and SKSE rather than Steam's **Play** button. Steam writes app state to the manifest when it launches a game, so a read-only manifest produces harmless `Failed to write app state file` entries in Steam's log.
+- If you have protected the manifest with an `icacls` Deny rule, remove it before running the script and restore it afterward.
 
-## Configuring the script
+## Where the release data comes from
 
-Open `Set-SteamSkyrimAcfBuildAndLock.ps1` and edit the `CONFIG` section:
+The script needs two things: the build ID Steam currently advertises for Skyrim, and the manifest GID for each of your installed depots. It can get them three ways.
 
-- `$SteamApps` is the Steam library's `steamapps` folder that contains Skyrim.
-- `$BuildId` is the build ID Steam is currently offering on the public branch.
-- `$Manifests` contains the current public manifest ID for each depot listed under `InstalledDepots` in your local `appmanifest_489830.acf`.
+**Online.** A lookup through the [SteamCMD API](https://www.steamcmd.net/), a free, open-source third-party service with no affiliation to Valve or Steam. The request sends only Skyrim's public app ID, `489830`. It does not send your Steam account, your paths, your installed version, your language, or anything about your mods. The script validates the response before using any of it.
 
-The build and manifest IDs entered in the script must describe the current build Steam is offering, not the older build you restored. The script reports the current IDs to Steam while leaving the older game files untouched.
+**Built in.** A release recorded inside the script, for working offline. It is whichever Skyrim release was the newest public one when the script was last updated, so it goes out of date as soon as Bethesda ships another patch. At the moment that is Skyrim `1.7.104`, Steam build `24914197`, released 27 August 2026. The script always shows you that date and warns you it may have been superseded, which is why the online lookup is offered first.
 
-### Find the current public build ID
+**Custom.** Numbers you supply yourself, from Steam's own console or SteamDB. See [Advanced](#advanced-find-and-supply-custom-release-ids).
 
-You can get the current build ID directly from Steam:
+Two safety checks apply no matter which source you use, and both default to No:
+
+- If the online data is older than the release saved in the script, that suggests either a Valve rollback or a stale service, so the script asks before using it.
+- If the build about to be written is lower than the one already in the manifest, the script asks before recording it, because a lower build can make Steam decide an update is needed.
+
+Add `-Force` to answer Yes to both without being asked, for unattended runs.
+
+## Command-line options
+
+| Parameter | Purpose |
+| --- | --- |
+| `-SteamApps <path>` | Use a specific `steamapps` folder instead of searching for one. |
+| `-ReleaseSource Prompt` | Ask the normal questions. This is the default. |
+| `-ReleaseSource Online` | Use the online lookup without asking first. Stops if the lookup fails. |
+| `-ReleaseSource BuiltIn` | Use the release saved in the script. Makes no network request. |
+| `-ReleaseSource Custom` | Use values you supply, prompting for any you leave out. |
+| `-CustomBuildId <id>` | Supply the public Steam build ID. |
+| `-CustomManifests <hashtable>` | Supply public GIDs by installed depot ID. |
+| `-Force` | Answer Yes to the two safety confirmations above. Skips no other check. |
+
+```powershell
+# Get current data without being asked about the source.
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 -ReleaseSource Online
+
+# Work entirely offline, using the release saved in the script.
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 -ReleaseSource BuiltIn
+
+# Point at a specific Steam library.
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 -SteamApps 'D:\SteamLibrary\steamapps'
+```
+
+Supplying `-CustomBuildId` or `-CustomManifests` selects the custom source automatically when `-ReleaseSource` is omitted or set to `Prompt`. They cannot be combined with `-ReleaseSource Online` or `-ReleaseSource BuiltIn`. The script prompts only for the custom values you did not supply.
+
+## Advanced: find and supply custom release IDs
+
+<details>
+<summary>Show the steps</summary>
+
+Use custom IDs when you would rather not use the online service and Steam has released a build newer than the one saved in the script.
+
+Open Steam's console:
 
 1. Press **Win+R**.
-2. Enter `steam://open/console` and press **Enter**.
-3. In Steam's **Console** tab, run:
+2. Enter `steam://open/console`.
+3. Run:
 
 ```text
 app_info_update 1
 app_info_print 489830
 ```
 
-`app_info_update 1` tells Steam to refresh its cached application information from Steam's servers. The `1` requests an update for all application information; it is not a game or app ID. This refresh helps prevent the next command from showing an older cached build ID or manifest IDs after Steam publishes a new Skyrim release.
+`app_info_update 1` refreshes Steam's cached application metadata. The `1` tells Steam to update app information for all apps; it is not Skyrim's app ID. This command does not download or install Skyrim files.
 
-This command refreshes Steam's metadata only. It does not download or install Skyrim game files. `app_info_print 489830` then displays the refreshed information for Skyrim Special Edition, whose Steam app ID is `489830`.
+`app_info_print 489830` prints Skyrim's refreshed app information. The output resembles JSON, but it uses Valve KeyValues format, also called VDF. It has nested quoted names and values without JSON colons or commas.
 
-4. In the output, find `depots > branches > public > buildid`.
-
-You can also open the [Skyrim Special Edition depots page on SteamDB](https://steamdb.info/app/489830/depots/) and read the build ID from the `public` row in the Branches table.
-
-### Find the current public manifest IDs
-
-The output resembles JSON, but it is Steam's Valve KeyValues format, commonly called VDF. It uses quoted names and values inside nested braces without JSON's colons or commas.
-
-Do not copy every depot shown by `app_info_print`. The command describes all depots available for Skyrim, including other languages and shared components. Your local `appmanifest_489830.acf` identifies the subset installed on your computer.
-
-First, open `appmanifest_489830.acf` in a text editor and find its `InstalledDepots` block. An abbreviated copy of this English installation contains:
+Find the public build ID at:
 
 ```text
-"InstalledDepots"
-{
-    "489831"
-    {
-        "manifest" "4940892828028256588"
-    }
-    "489832"
-    {
-        "manifest" "5728778377666085157"
-    }
-    "489833"
-    {
-        "manifest" "4886117324142477814"
-    }
-}
-"SharedDepots"
-{
-    "228986" "228980"
-    "228990" "228980"
-}
-"UserConfig"
-{
-    "language" "english"
-}
+depots > branches > public > buildid
 ```
 
-This means `$Manifests` needs exactly the three IDs under `InstalledDepots`. The two IDs under `SharedDepots` are not added. English does not have a separate language depot because its files are included in the main Windows depots.
+Next, open your local `appmanifest_489830.acf` and find `InstalledDepots`. Use only the depot IDs inside that block. Do not add `SharedDepots` such as `228986` or `228990`.
 
-Next, return to the output from `app_info_print 489830`. Under `depots`, find each installed depot number, then follow `manifests > public > gid`. An abbreviated portion of the supplied English example looks like this:
+For each installed depot, find its public GID in the console output at:
 
 ```text
-"depots"
-{
-    "489831"
-    {
-        "manifests"
-        {
-            "public"
-            {
-                "gid" "4940892828028256588"
-            }
-        }
-    }
-    "489832"
-    {
-        "manifests"
-        {
-            "public"
-            {
-                "gid" "5728778377666085157"
-            }
-        }
-    }
-    "489833"
-    {
-        "manifests"
-        {
-            "public"
-            {
-                "gid" "4886117324142477814"
-            }
-        }
-    }
-}
+depots > DEPOT_ID > manifests > public > gid
 ```
 
-The outer number, such as `489831`, is the depot ID and becomes a key in `$Manifests`. The `gid` inside that depot's `public` block is its current manifest ID and becomes the corresponding value. For the example above, the script configuration is:
-
-```powershell
-$Manifests = [ordered]@{
-    '489831' = '4940892828028256588'
-    '489832' = '5728778377666085157'
-    '489833' = '4886117324142477814'
-}
-```
-
-These example IDs describe the public build at the time the output was captured. Always read fresh values before configuring the script for a later Steam release.
-
-You can instead use the [SteamDB public depot page](https://steamdb.info/app/489830/depots/?branch=public). SteamDB calls the value a manifest ID, while the Steam Console calls it a `gid`. The `download_depot` command uses the same value as its third number, and the local ACF file stores it next to `manifest`.
-
-The main Windows depots are:
+Common Skyrim depots are:
 
 | Depot | Contents |
 | --- | --- |
 | `489831` | World data, including BSA and ESM files |
 | `489832` | Core files |
 | `489833` | `SkyrimSE.exe` |
-
-Language depots include:
-
-| Depot | Language |
-| --- | --- |
 | `489834` | French |
 | `489835` | Italian |
 | `489836` | German |
@@ -182,30 +185,23 @@ Language depots include:
 | `544860` | Traditional Chinese |
 | `544861` | Japanese |
 
-Language depots appear in `app_info_print` with a `config > language` value. Include one only if its depot number also appears under `InstalledDepots` in your local ACF file. Adding a depot that is not present causes the script to stop with an error.
+English installations normally contain only the three main depots. Other languages normally add one language depot.
 
-The console output also shows shared depots `228986` and `228990`. On this installation they appear under `SharedDepots`, not `InstalledDepots`, and they do not have their own `manifests > public > gid` values in Skyrim's app information. Do not add them to `$Manifests`.
-
-When Steam releases another build, refresh the app information and copy the current public `gid` for every depot already listed in `$Manifests`. A depot ID stays the same across releases, while its manifest ID may change. Steam can reuse an unchanged depot manifest in a new build, so it is possible for an individual `gid` to remain the same.
-
-## Running the script
-
-1. Exit Steam completely.
-2. Open PowerShell in the repository root.
-3. Run:
+An English custom command looks like this:
 
 ```powershell
-.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 `
+    -ReleaseSource Custom `
+    -CustomBuildId 'PASTE_BUILD_ID' `
+    -CustomManifests @{
+        '489831' = 'PASTE_GID' # Example: 4940892828028256588
+        '489832' = 'PASTE_GID' # Example: 5728778377666085157
+        '489833' = 'PASTE_GID' # Example: 4886117324142477814
+    }
 ```
 
-4. Review the displayed diff before starting Steam again.
+For another language, include its installed language depot. You may also provide only some custom GIDs and let the script prompt for the missing ones. At a prompt, press Enter to skip a depot and leave its app-manifest entry unchanged, which is the answer for a depot that has no Skyrim public GID. The three main depots are required and cannot be skipped. Extra depot IDs are rejected.
 
-If the manifest already contains the configured values, the script does not write a backup or rewrite the file. It still confirms that the manifest is read-only.
+You can use the [SteamDB public depot page](https://steamdb.info/app/489830/depots/?branch=public) as an alternative reference. SteamDB calls the same value a manifest ID rather than a GID.
 
-## Important limitations
-
-- Never use **Verify Integrity of Game Files** while preserving an older build. Steam can replace the older game files regardless of the manifest's read-only flag.
-- Valve does not document or guarantee the read-only manifest method, so it should not be your only protection.
-- `appmanifest_489830.acf.bak` is only a backup of the manifest. It is not a backup of Skyrim.
-- Start the game through MO2 and SKSE instead of Steam's **Play** button.
-- Keep a separate copy of the working Skyrim installation folder.
+</details>

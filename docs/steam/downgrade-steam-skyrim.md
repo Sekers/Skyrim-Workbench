@@ -148,13 +148,13 @@ Do not load an important save until the complete SKSE and mod setup is confirmed
 
 Do this before starting Skyrim again:
 
-1. Open the [lockdown script instructions](../../scripts/steam/set-skyrim-acf-build-and-lock/README.md#configuring-the-script).
-2. Configure the script with the build ID and depot manifest IDs Steam **currently** offers, not the target build ID or the historical manifest IDs used for the downgrade.
-3. Run the [PowerShell script](../../scripts/steam/set-skyrim-acf-build-and-lock/Set-SteamSkyrimAcfBuildAndLock.ps1) while Steam is fully closed.
+1. Open the [lockdown script quick start](../../scripts/steam/set-skyrim-acf-build-and-lock/README.md#quick-start).
+2. Exit Steam completely.
+3. Run the [PowerShell script](../../scripts/steam/set-skyrim-acf-build-and-lock/Set-SteamSkyrimAcfBuildAndLock.ps1). It can retrieve the current public build and depot manifest IDs automatically.
 4. Review the displayed changes and confirm that the manifest is read-only.
 5. Start Skyrim through Mod Organizer 2 and SKSE instead of Steam's **Play** button.
 
-The difference in step 2 is intentional. The files on disk remain at the version you restored, but Steam's app manifest reports the current public build so Steam does not consider an update pending.
+The files on disk remain at the version you restored, but Steam's app manifest reports the current public build so Steam does not consider an update pending.
 
 ## Troubleshooting
 
