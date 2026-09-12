@@ -959,13 +959,17 @@ if ($old.Count -eq 0 -or $new.Count -eq 0) {
     Write-Host (Compare-Object -ReferenceObject $old -DifferenceObject $new |
         Format-Table -AutoSize | Out-String -Width 512).TrimEnd()
 } else {
+    # Steam separates ACF keys from values with tabs. Format-Table counts a tab
+    # as one character but the console expands it to the next tab stop, so the
+    # columns only line up once the interior whitespace is collapsed.
+    $collapse = { param([string] $Line) ($Line -replace '\s+', ' ').Trim() }
     Write-Host (0..($old.Count - 1) |
         Where-Object { $old[$_] -ne $new[$_] } |
         ForEach-Object {
             [pscustomobject]@{
                 Line = $_ + 1
-                Old  = $old[$_].Trim()
-                New  = $new[$_].Trim()
+                Old  = & $collapse $old[$_]
+                New  = & $collapse $new[$_]
             }
         } | Format-Table -AutoSize | Out-String -Width 512).TrimEnd()
 }
