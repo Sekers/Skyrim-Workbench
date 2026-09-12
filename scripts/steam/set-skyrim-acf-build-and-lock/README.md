@@ -6,10 +6,22 @@ It is for Skyrim Special Edition and Anniversary Edition on Steam for Windows. I
 
 Your game files are never touched. The script only edits Steam's bookkeeping file for Skyrim.
 
+## Features
+
+- Blocks Skyrim Special Edition and Anniversary Edition updates on Steam.
+- Prevents the download of updates, saving bandwidth and staging space.
+- Holds through future releases with a read-only app manifest.
+- Finds your Skyrim automatically, on any drive or Steam library.
+- Takes release IDs online (recommended to make sure the latest version info is used), from a copy saved in the script, or from you.
+- Backs up the app manifest and shows every line it changed.
+- Refuses to run while Steam is open, and asks before anything risky.
+- Runs unattended for scheduled use.
+
 ## Before you start
 
 1. **Get Skyrim onto the version you want first.** This script does not downgrade anything. If Steam has already updated you, follow the [downgrade guide](../../../docs/steam/downgrade-steam-skyrim.md) first, then come back here.
-2. **Exit Steam completely.** Select **Steam > Exit** from the menu, or right-click the tray icon and choose **Exit**. Closing the window is not enough, and the script refuses to run while Steam is open.
+2. **Do not run this if a Skyrim update was interrupted.** If Steam began replacing game files and did not finish, marking that half-updated folder complete would lock the damage in, and Steam could no longer detect it. The script checks for this and warns you. Rebuild a clean installation with the [downgrade guide](../../../docs/steam/downgrade-steam-skyrim.md) first.
+3. **Exit Steam completely.** Select **Steam > Exit** from the menu, or right-click the tray icon and choose **Exit**. Closing the window is not enough, and the script refuses to run while Steam is open.
 
 ## Run the script
 
@@ -33,11 +45,13 @@ A normal run asks one question, then shows you what it changed. The rest of thes
 
 | Question | When it appears | What to answer |
 | --- | --- | --- |
-| `Look up the current public release from api.steamcmd.net? Only Skyrim's app ID 489830 is sent. [Y/n]` | Every run | **Enter** for yes, which is the normal choice. It fetches the build numbers Steam is handing out today. Answer **n** to stay offline. |
-| `Use this embedded release? [Y/n]` | You answered `n` above, or the lookup failed | **Enter** to accept the release saved in the script, but check the date it prints first: that release was the newest one when the script was last updated, and Bethesda may have shipped a patch since. Answer **n** to supply your own numbers instead. If the lookup failed rather than you declining it, this defaults to No. |
-| `Enter custom build and manifest IDs instead? [y/N]` | You declined both of the above | **y** if you already have the numbers, from [Advanced](#advanced-find-and-supply-custom-release-ids) below. **Enter** cancels the run without changing anything. |
 | `Select 1 through N, or press Enter to cancel` | Steam's record file for Skyrim turned up in more than one library folder. Usually an old copy left behind by an interrupted **Move Install Folder**, or by a library folder you copied or restored yourself | Type the number for the Skyrim you actually play. The script lists the full folder path for each one, so match it against where your modded game lives, such as the folder Mod Organizer 2 launches. If you are not sure, press **Enter** to cancel, check the folder in Steam under **Properties > Installed Files**, then run the script again. |
+| `Skyrim was not found. Enter its steamapps folder, or press Enter to cancel` | No Skyrim record file turned up in any Steam library the script could find | Paste the full path to the `steamapps` folder holding your Skyrim, such as `D:\SteamLibrary\steamapps`. Steam shows it under **Properties > Installed Files**. It asks again if that folder has no Skyrim record in it. **Enter** cancels the run. |
+| `Look up the current public release from api.steamcmd.net? Only Skyrim's app ID 489830 is sent. [Y/n]` | Every run, unless the command line sets a release source | **Enter** for yes, which is the normal choice. It fetches the build numbers Steam is handing out today. Answer **n** to stay offline. |
 | `Use the older online release anyway? [y/N]` | The online data looks older than the release saved in the script | **Enter** for no. Say yes only if you know Valve rolled the game back; otherwise the service is probably returning stale data. |
+| `Use this embedded release? [Y/n]`, or `[y/N]` when the lookup failed | You answered `n` to the lookup, declined stale online data, or the lookup failed | **Enter** to accept the release saved in the script, but check the date it prints first: that release was the newest one when the script was last updated, and Bethesda may have shipped a patch since. Answer **n** to supply your own numbers instead. |
+| `Enter custom build and manifest IDs instead? [y/N]` | You declined both of the above, or you accepted the saved release but it has no entry for one of your installed depots | **y** if you already have the numbers, from [Advanced](#advanced-find-and-supply-custom-release-ids) below. **Enter** cancels the run without changing anything. |
+| `Record the game as fully installed anyway? [y/N]` | Steam's record shows an update that did not finish, so your game files may be part old and part new | **Enter** for no. Say yes only if you know the game folder is intact. Otherwise rebuild a clean installation with the [downgrade guide](../../../docs/steam/downgrade-steam-skyrim.md), then run this again. |
 | `Record the lower build anyway? [y/N]` | The build about to be written is lower than the one already recorded | **Enter** for no. A lower build can make Steam decide an update is needed, so say yes only if you know why it is lower. |
 
 ### When it finishes
@@ -66,7 +80,7 @@ Everything below is in `steamapps\appmanifest_489830.acf`. Fields marked optiona
 | `buildid` | Current public build ID | The number Steam compares against the public release to decide an update is needed. |
 | `TargetBuildID` | Same build ID | The build Steam is working toward. Optional. |
 | `manifest`, per installed depot | Current public GID for that depot | Steam checks each depot as well, so one stale GID is enough to trigger an update. |
-| `StateFlags` | `4` | Marks the game fully installed, clearing any update required or update queued state. |
+| `StateFlags` | `4` | Marks the game fully installed, clearing any update required or update queued state. Read first: the script warns if the existing value shows an update that did not finish. |
 | `AutoUpdateBehavior` | `1` | Only update this game when I launch it, so Steam will not start one on its own. |
 | `UpdateResult` | `0` | Clears a recorded failure from an earlier update attempt. Optional. |
 | `BytesToDownload`, `BytesDownloaded` | `0` | Clears a part-finished download. Optional. |
@@ -100,12 +114,11 @@ The script needs two things: the build ID Steam currently advertises for Skyrim,
 
 **Custom.** Numbers you supply yourself, from Steam's own console or SteamDB. See [Advanced](#advanced-find-and-supply-custom-release-ids).
 
-Two safety checks apply no matter which source you use, and both default to No:
+Three safety checks apply no matter which source you use, and all default to No:
 
-- If the online data is older than the release saved in the script, that suggests either a Valve rollback or a stale service, so the script asks before using it.
-- If the build about to be written is lower than the one already in the manifest, the script asks before recording it, because a lower build can make Steam decide an update is needed.
-
-Add `-Force` to answer Yes to both without being asked, for unattended runs.
+- If the online data is older than the release saved in the script, that suggests either a Valve rollback or a stale service, so the script asks before using it. `-AllowOlderOnlineRelease` answers Yes.
+- If the build about to be written is lower than the one already in the manifest, the script asks before recording it, because a lower build can make Steam decide an update is needed. `-AllowLowerBuild` answers Yes.
+- If `StateFlags` shows an update Steam did not finish, the script asks before recording the game as fully installed, because that can make a half-updated game folder permanent. `-AllowInterruptedUpdate` answers Yes.
 
 ## Command-line options
 
@@ -113,12 +126,15 @@ Add `-Force` to answer Yes to both without being asked, for unattended runs.
 | --- | --- |
 | `-SteamApps <path>` | Use a specific `steamapps` folder instead of searching for one. |
 | `-ReleaseSource Prompt` | Ask the normal questions. This is the default. |
-| `-ReleaseSource Online` | Use the online lookup without asking first. Stops if the lookup fails. |
+| `-ReleaseSource Online` | Use the online lookup without asking first. Stops if the lookup fails, or if you decline online data that looks older than the release saved in the script. |
 | `-ReleaseSource BuiltIn` | Use the release saved in the script. Makes no network request. |
 | `-ReleaseSource Custom` | Use values you supply, prompting for any you leave out. |
 | `-CustomBuildId <id>` | Supply the public Steam build ID. |
 | `-CustomManifests <hashtable>` | Supply public GIDs by installed depot ID. |
-| `-Force` | Answer Yes to the two safety confirmations above. Skips no other check. |
+| `-NonInteractive` | Never ask. Questions take their default answer, and anything that cannot be decided safely stops with an error. For scheduled runs. |
+| `-AllowOlderOnlineRelease` | Answer Yes to the first safety confirmation above. Skips no other check. |
+| `-AllowLowerBuild` | Answer Yes to the second safety confirmation above. Skips no other check. |
+| `-AllowInterruptedUpdate` | Answer Yes to the third safety confirmation above. Skips no other check. |
 
 ```powershell
 # Get current data without being asked about the source.
@@ -132,6 +148,20 @@ Add `-Force` to answer Yes to both without being asked, for unattended runs.
 ```
 
 Supplying `-CustomBuildId` or `-CustomManifests` selects the custom source automatically when `-ReleaseSource` is omitted or set to `Prompt`. They cannot be combined with `-ReleaseSource Online` or `-ReleaseSource BuiltIn`. The script prompts only for the custom values you did not supply.
+
+## Saving a log of the run
+
+The script prints to the console, so `> log.txt` on its own saves an empty file. Use a transcript for an interactive run, or merge the output streams for an unattended one.
+
+```powershell
+# Interactive run.
+Start-Transcript -Path skyrim-lock.log
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1
+Stop-Transcript
+
+# Unattended run.
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 -NonInteractive *> skyrim-lock.log
+```
 
 ## Advanced: find and supply custom release IDs
 
@@ -200,7 +230,7 @@ An English custom command looks like this:
     }
 ```
 
-For another language, include its installed language depot. You may also provide only some custom GIDs and let the script prompt for the missing ones. At a prompt, press Enter to skip a depot and leave its app-manifest entry unchanged, which is the answer for a depot that has no Skyrim public GID. The three main depots are required and cannot be skipped. Extra depot IDs are rejected.
+For another language, include its installed language depot. You may also provide only some custom GIDs and let the script prompt for the missing ones. At a prompt, press Enter to skip a depot and leave its app-manifest entry unchanged, which is the answer for a depot that has no Skyrim public GID. The three main depots are required and cannot be skipped. `-NonInteractive` cannot ask, so it needs a GID for every installed depot. Extra depot IDs are rejected.
 
 You can use the [SteamDB public depot page](https://steamdb.info/app/489830/depots/?branch=public) as an alternative reference. SteamDB calls the same value a manifest ID rather than a GID.
 

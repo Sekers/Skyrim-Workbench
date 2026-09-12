@@ -181,6 +181,8 @@ Check `SkyrimSE.exe` again and confirm that its product version matches your int
 
 Do not allow the update to start. Exit Steam completely, run the lockdown script again, and confirm that `appmanifest_489830.acf` is read-only. Valve does not document or guarantee this method, so keep a separate backup of the working game folder.
 
+If the update already started, do not use the lockdown script to cover it up. Steam replaces game files partway through an update, so the folder may now hold a mix of two versions. The script checks for this and refuses unless you confirm, because marking a half-updated install complete leaves Steam unable to detect the problem. Rebuild a clean installation from your backup or the depot steps above, then lock it.
+
 ## References
 
 - [Steam Manifest List for Skyrim](https://www.nexusmods.com/skyrimspecialedition/articles/6536)
