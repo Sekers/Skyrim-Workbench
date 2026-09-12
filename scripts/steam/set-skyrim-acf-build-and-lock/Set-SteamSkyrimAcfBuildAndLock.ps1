@@ -482,6 +482,10 @@ function Get-OnlineRelease {
         }
         $response = Invoke-RestMethod -Uri $ApiUri -Method Get -TimeoutSec 15
     }
+    catch [System.OperationCanceledException] {
+        # PowerShell 7 reports a -TimeoutSec timeout this way; keep that type for deliberate stops.
+        throw 'The SteamCMD API request timed out.'
+    }
     finally {
         if ($null -ne $previousProtocol) {
             [Net.ServicePointManager]::SecurityProtocol = $previousProtocol
