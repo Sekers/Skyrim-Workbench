@@ -9,7 +9,7 @@ Your game files are never touched. The script only edits Steam's bookkeeping fil
 ## Features
 
 - Blocks Skyrim Special Edition and Anniversary Edition updates on Steam.
-- Prevents the download of updates, saving bandwidth and staging space.
+- Prevents update downloads, saving bandwidth.
 - Holds through future releases with a read-only app manifest.
 - Finds your Skyrim automatically, on any drive or Steam library.
 - Takes release IDs online (recommended to make sure the latest version info is used), from a copy saved in the script, or from you.
@@ -65,8 +65,8 @@ Otherwise it just confirms the manifest already matches and makes sure read-only
 ## What it does
 
 - Writes the current public build and manifest ID numbers into Skyrim's Steam app manifest, and clears the update state Steam had already recorded: its saved update result, download and staging counters, and scheduled update time. Steam decides whether a game needs updating from those numbers, not from your actual game files, so it now treats your game installation as already up to date. Your older game files are never replaced.
-- Because Steam believes nothing needs updating, it never queues, downloads, or stages the new build. That saves the bandwidth and the temporary disk space a download would use, not just the final install step.
-- Keeps the app manifest read-only. Steam records an update in that file before applying it, so when the next Skyrim release arrives, Steam cannot write the new state and the update does not go through. This is what protects the installation once the ID numbers above are out of date.
+- While those numbers match the current release, Steam sees nothing to update, so it never queues, downloads, or stages anything.
+- Keeps the app manifest read-only. Steam records an update in that file before applying it, so when the next Skyrim release arrives, Steam cannot write the new state and the update does not go through. This is what protects the installation once the ID numbers above are out of date. Steam shows a disk write error instead.
 - Sets Steam's update preference to update only when the game is launched.
 - Backs up the app manifest before applying changes.
 - Shows the exact lines changed.
@@ -83,8 +83,8 @@ Everything below is in `steamapps\appmanifest_489830.acf`. Fields marked optiona
 | `StateFlags` | `4` | Marks the game fully installed, clearing any update required or update queued state. Read first: the script warns if the existing value shows an update that did not finish. |
 | `AutoUpdateBehavior` | `1` | Only update this game when I launch it, so Steam will not start one on its own. |
 | `UpdateResult` | `0` | Clears a recorded failure from an earlier update attempt. Optional. |
-| `BytesToDownload`, `BytesDownloaded` | `0` | Clears a part-finished download. Optional. |
-| `StagingSize`, `BytesToStage`, `BytesStaged` | `0` | Clears a part-finished staging step. Optional. |
+| `BytesToDownload`, `BytesDownloaded` | `0` | Resets Steam's download counters. Files already downloaded stay. Optional. |
+| `StagingSize`, `BytesToStage`, `BytesStaged` | `0` | Resets Steam's staging counters. Staged files stay. Optional. |
 | `ScheduledAutoUpdate` | `0` | Removes a scheduled update time. Optional. |
 
 The file is then set read-only.
@@ -101,7 +101,7 @@ If the app manifest already holds the right values, the script changes nothing a
 - Valve does not document or guarantee this method. Keep a separate copy of your working Skyrim folder. That is the real safety net.
 - The script does not download, install, or select an older Skyrim version.
 - SKSE and its plugins must match the Skyrim version you actually have installed, not the build number written into the app manifest.
-- Start Skyrim through MO2 and SKSE rather than Steam's **Play** button. Steam writes app state to the manifest when it launches a game, so a read-only manifest produces harmless `Failed to write app state file` entries in Steam's log.
+- Start Skyrim through MO2 and SKSE rather than Steam's **Play** button. Steam writes app state to the manifest when it launches a game or has an update pending, so a read-only manifest produces harmless `Failed to write app state file` entries in Steam's log.
 - If you have protected the manifest with an `icacls` Deny rule, remove it before running the script and restore it afterward.
 
 ## Where the release data comes from

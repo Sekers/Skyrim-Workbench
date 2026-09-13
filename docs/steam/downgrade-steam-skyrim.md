@@ -6,7 +6,7 @@ The worked example restores **Steam build 13189953**, which corresponds directly
 
 Use it if Steam has updated Skyrim and the new version is incompatible with your SKSE setup or version-dependent mods. These instructions apply only to the Steam release on Windows. They do not apply to GOG.
 
-After the downgrade, use [Set-SteamSkyrimAcfBuildAndLock.ps1](../../scripts/steam/set-skyrim-acf-build-and-lock/README.md) to stop Steam from queuing, downloading, staging, or installing the unwanted update again.
+After the downgrade, use [Set-SteamSkyrimAcfBuildAndLock.ps1](../../scripts/steam/set-skyrim-acf-build-and-lock/README.md) to stop Steam from installing the unwanted update again.
 
 ## Choose the version to restore
 
@@ -181,7 +181,7 @@ Check `SkyrimSE.exe` again and confirm that its product version matches your int
 
 Do not allow the update to start. Exit Steam completely, run the lockdown script again, and confirm that `appmanifest_489830.acf` is read-only. Valve does not document or guarantee this method, so keep a separate backup of the working game folder.
 
-If the update already started, do not use the lockdown script to cover it up. Steam replaces game files partway through an update, so the folder may now hold a mix of two versions. The script checks for this and refuses unless you confirm, because marking a half-updated install complete leaves Steam unable to detect the problem. Rebuild a clean installation from your backup or the depot steps above, then lock it.
+If an update already started, do not use the lockdown script to cover it up. Steam's error messages do not show whether game files changed, and marking a half-updated installation complete leaves Steam unable to detect the problem. Rebuild a clean installation from your backup or the depot steps above, then lock it.
 
 ## References
 

@@ -8,7 +8,7 @@ Scripts, guides, mod recommendations, and other resources for Skyrim.
 
 Utilities for maintaining and managing Skyrim installations.
 
-- [Set-SteamSkyrimAcfBuildAndLock.ps1](scripts/steam/set-skyrim-acf-build-and-lock/README.md): Keeps an older Skyrim Special Edition or Anniversary Edition installation on the version your SKSE setup and mods need. It tells Steam the game is already up to date, so Steam never downloads or stages the new build, and it makes the Steam app manifest read-only so a later update cannot replace your files.
+- [Set-SteamSkyrimAcfBuildAndLock.ps1](scripts/steam/set-skyrim-acf-build-and-lock/README.md): Keeps an older Skyrim Special Edition or Anniversary Edition installation on the version your SKSE setup and mods need. It tells Steam the game is already up to date and makes the Steam app manifest read-only, so a later update cannot replace your files.
 
 ### Documentation
 
