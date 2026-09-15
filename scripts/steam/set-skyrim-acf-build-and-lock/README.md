@@ -25,19 +25,34 @@ Your game files are never touched. The script only edits Steam's bookkeeping fil
 
 ## Run the script
 
-Open a terminal in the repository root and run one of these. Either edition works; use the second if you have PowerShell 7 or newer installed.
+You do not need to edit the script. It finds your Skyrim automatically, even if your Steam library is on a different drive than Steam itself, and reads your exact installed depots from `appmanifest_489830.acf`.
 
-```powershell
+Open Command Prompt or PowerShell in the repository root, then use the matching commands below.
+
+### From Command Prompt
+
+Either edition works; use the second if you have PowerShell 7 or newer installed.
+
+```bat
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1"
 ```
 
-```powershell
+```bat
 pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1"
 ```
 
 `-ExecutionPolicy Bypass` applies only to that one PowerShell process. It does not change any setting on your computer.
 
-You do not need to edit the script. It finds your Skyrim automatically, even if your Steam library is on a different drive than Steam itself, and reads your exact installed depots from `appmanifest_489830.acf`.
+### From PowerShell
+
+The same commands work in Windows PowerShell and PowerShell 7 or newer.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1
+```
+
+`-Scope Process` applies only to that PowerShell window. It does not change any setting on your computer.
 
 ### What it will ask you
 
@@ -114,7 +129,7 @@ The script needs two things: the build ID Steam currently advertises for Skyrim,
 
 **Custom.** Numbers you supply yourself, from Steam's own console or SteamDB. See [Advanced](#advanced-find-and-supply-custom-release-ids).
 
-Three safety checks apply no matter which source you use, and all default to No:
+Three safety checks default to No. The first applies only to the online lookup; the other two apply whichever source you use:
 
 - If the online data is older than the release saved in the script, that suggests either a Valve rollback or a stale service, so the script asks before using it. `-AllowOlderOnlineRelease` answers Yes.
 - If the build about to be written is lower than the one already in the manifest, the script asks before recording it, because a lower build can make Steam decide an update is needed. `-AllowLowerBuild` answers Yes.
@@ -135,6 +150,8 @@ Three safety checks apply no matter which source you use, and all default to No:
 | `-AllowOlderOnlineRelease` | Answer Yes to the first safety confirmation above. Skips no other check. |
 | `-AllowLowerBuild` | Answer Yes to the second safety confirmation above. Skips no other check. |
 | `-AllowInterruptedUpdate` | Answer Yes to the third safety confirmation above. Skips no other check. |
+
+These examples run in PowerShell. If scripts are disabled, first run the `Set-ExecutionPolicy` line from [From PowerShell](#from-powershell).
 
 ```powershell
 # Get current data without being asked about the source.
@@ -220,14 +237,16 @@ English installations normally contain only the three main depots. Other languag
 An English custom command looks like this:
 
 ```powershell
-.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 `
-    -ReleaseSource Custom `
-    -CustomBuildId 'PASTE_BUILD_ID' `
-    -CustomManifests @{
+$custom = @{
+    ReleaseSource   = 'Custom'
+    CustomBuildId   = 'PASTE_BUILD_ID'
+    CustomManifests = @{
         '489831' = 'PASTE_GID' # Example: 4940892828028256588
         '489832' = 'PASTE_GID' # Example: 5728778377666085157
         '489833' = 'PASTE_GID' # Example: 4886117324142477814
     }
+}
+.\scripts\steam\set-skyrim-acf-build-and-lock\Set-SteamSkyrimAcfBuildAndLock.ps1 @custom
 ```
 
 For another language, include its installed language depot. You may also provide only some custom GIDs and let the script prompt for the missing ones. At a prompt, press Enter to skip a depot and leave its app-manifest entry unchanged, which is the answer for a depot that has no Skyrim public GID. The three main depots are required and cannot be skipped. `-NonInteractive` cannot ask, so it needs a GID for every installed depot. Extra depot IDs are rejected.
